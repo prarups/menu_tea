@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Oru Tea Sollu - Official Menu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #000; color: #eee; scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+        .category-nav { position: sticky; top: 0; z-index: 40; background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid #1a1a1a; }
+        .nav-container { display: flex; overflow-x: auto; gap: 8px; padding: 12px; scrollbar-width: none; }
+        .nav-container::-webkit-scrollbar { display: none; }
+        .cat-item { flex: 0 0 auto; padding: 6px 14px; border-radius: 12px; background: #111; border: 1px solid #222; font-size: 11px; font-weight: 700; color: #fff; text-decoration: none; }
+        .menu-card { background: #0a0a0a; border-radius: 16px; border: 1px solid #1a1a1a; overflow: hidden; margin-bottom: 24px; }
+        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid #111; }
+        .price-tag { color: #f97316; font-weight: 800; font-size: 0.85rem; }
+        .add-btn { background: #f97316; color: white; padding: 5px 14px; border-radius: 6px; font-size: 10px; font-weight: 800; }
+        
+        #cart-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #111; z-index: 50; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0, 0, 0.2, 1); border-radius: 20px 20px 0 0; border-top: 1px solid #333; }
+        #cart-panel.open { transform: translateY(0) !important; }
+        #cart-panel.peek { transform: translateY(calc(100% - 75px)); }
+        
+        .cart-item-row { background: #000; padding: 8px 12px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; border: 1px solid #1a1a1a; }
+        .qty-btn { width: 26px; height: 26px; background: #1a1a1a; border-radius: 6px; color: #f97316; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #10b981; color: white; padding: 8px 16px; border-radius: 50px; font-size: 11px; font-weight: bold; z-index: 100; opacity: 0; transition: 0.3s; pointer-events: none; }
+    </style>
+</head>
+<body class="pb-32">
+
+    <header class="py-8 text-center bg-gradient-to-b from-orange-950/20 to-black">
+        <h1 class="text-orange-500 text-3xl font-black italic tracking-tighter uppercase">ORU TEA SOLLU</h1>
+        <p class="text-gray-500 text-[9px] tracking-[0.3em] uppercase mt-1">Official Menu • WhatsApp: 6383152819</p>
+    </header>
+
+    <nav class="category-nav">
+        <div class="nav-container max-w-6xl mx-auto" id="cat-nav"></div>
+    </nav>
+
+    <main class="max-w-md mx-auto px-4 py-6" id="menu-grid"></main>
+
+    <div id="cart-panel">
+        <div onclick="openCart()" class="px-6 py-4 flex justify-between items-center cursor-pointer border-b border-white/5 bg-[#111]">
+            <div class="flex items-center gap-3">
+                <div class="relative"><i class="fas fa-shopping-basket text-orange-500 text-xl"></i><span id="cart-count-badge" class="absolute -top-2 -right-2 bg-white text-black text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span></div>
+                <div><p class="text-[9px] text-gray-400 uppercase font-bold">Total Bill</p><p id="cart-summary-total" class="text-lg font-black text-white leading-none">₹0</p></div>
+            </div>
+            <button class="bg-orange-600 text-white text-[11px] font-black px-5 py-2 rounded-lg uppercase">View Order <i class="fas fa-chevron-up ml-1"></i></button>
+        </div>
+        <div class="px-6 pb-8 pt-4 max-h-[75vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6"><h3 class="text-orange-500 font-black text-sm uppercase">Order Details</h3><button onclick="closeCart()" class="text-gray-500 text-[10px] uppercase font-bold px-3 py-1 border border-gray-800 rounded-full">Close <i class="fas fa-times ml-1"></i></button></div>
+            <div class="space-y-3 mb-6">
+                <input type="text" id="custName" placeholder="Customer Name" class="w-full bg-black border border-white/10 rounded-xl p-3 text-sm text-white outline-none">
+                <input type="tel" id="custPhone" placeholder="Mobile Number" class="w-full bg-black border border-white/10 rounded-xl p-3 text-sm text-white outline-none">
+            </div>
+            <div id="cart-items-list" class="space-y-2"></div>
+            <button onclick="sendToWhatsApp()" class="w-full mt-6 bg-green-600 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 text-sm shadow-2xl"><i class="fab fa-whatsapp text-2xl"></i> CONFIRM VIA WHATSAPP</button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Added to cart!</div>
+
+    <script>
+        const WHATSAPP_NUMBER = "916383152819";
+        const menuData = [
+            { category: "Hot Beverages", id: "hot", items: [
+                {name: "Tea", price: 12}, {name: "Black Tea", price: 15}, {name: "Ginger Tea", price: 20}, {name: "Cardamom Tea", price: 20}, {name: "Coffee", price: 20}, {name: "Black Coffee", price: 15}, {name: "Lemon Tea", price: 20}, {name: "Honey Lemon Tea", price: 25}, {name: "Ginger Lemon Tea", price: 25}, {name: "Boost", price: 25}, {name: "Horlicks", price: 25}, {name: "Cashew Milk", price: 25}, {name: "Badam Milk", price: 25}, {name: "Chukku Coffee", price: 20}, {name: "Sukku Tea", price: 15}, {name: "Milk", price: 15}
+            ]},
+            { category: "Fresh Juices", id: "fresh", items: [
+                {name: "Lemon Juice", price: 25}, {name: "Lemon Soda", price: 35}, {name: "Grape Lime Juice", price: 40}, {name: "Pine Lime Juice", price: 40}, {name: "Water Melon", price: 40}, {name: "Water Melon (No Ice)", price: 45}, {name: "Pineapple Juice", price: 50}, {name: "Pineapple (No Ice)", price: 55}, {name: "Grape Juice", price: 60}, {name: "Fig Juice", price: 60}, {name: "Beetroot Juice", price: 50}, {name: "Beetroot (No Ice)", price: 55}, {name: "Sweet Lime (Saathukudi)", price: 60}, {name: "Sweet Lime (No Ice)", price: 65}, {name: "Carrot Juice", price: 60}, {name: "Carrot (No Ice)", price: 65}, {name: "Apple Juice", price: 70}, {name: "Pomegranate Juice", price: 70}, {name: "Red Banana Juice", price: 60}, {name: "Butter Fruit Juice", price: 80}, {name: "Dates Juice", price: 70}, {name: "Strawberry Juice", price: 70}
+            ]},
+            { category: "Mojitos", id: "mojitos", items: [
+                {name: "Virgin Mojito", price: 70}, {name: "Mint Mojito", price: 70}, {name: "Blue Mojito", price: 80}, {name: "Pineapple Mojito", price: 70}, {name: "Strawberry Mojito", price: 70}, {name: "Green Apple Mojito", price: 70}, {name: "Litchi Mojito", price: 70}, {name: "Mango Mojito", price: 70}, {name: "Kiwi Mojito", price: 70}
+            ]},
+            { category: "Milkshakes", id: "shakes", items: [
+                {name: "Oreo Shake", price: 70}, {name: "Oreo Monster Shake", price: 100}, {name: "Dry Fruit Shake", price: 100}, {name: "Dates and Banana", price: 80}, {name: "Dates and Fig", price: 80}, {name: "Chocolate Shake", price: 90}, {name: "Butterscotch Shake", price: 90}, {name: "Blackcurrant Shake", price: 90}, {name: "Strawberry Shake", price: 80}, {name: "Cold Coffee", price: 70}, {name: "Rose Milk", price: 40}, {name: "Badham Milk", price: 40}, {name: "Milk Sarbath", price: 40}
+            ]},
+            { category: "Falooda", id: "falooda", items: [
+                {name: "Mini Falooda", price: 90}, {name: "Titanic Falooda", price: 160}, {name: "Royal Falooda", price: 170}, {name: "Dry Fruit Falooda", price: 190}
+            ]},
+            { category: "Maggi & Bread Omelette", id: "snacks", items: [
+                {name: "Plain Maggie", price: 40}, {name: "Cheese Maggie", price: 55}, {name: "Cheese Corn Maggie", price: 60}, {name: "Chicken Maggie", price: 70}, {name: "Chicken Cheese Maggie", price: 80}, {name: "Plain Bread Omelette", price: 45}, {name: "Cheese Bread Omelette", price: 55}, {name: "Cheese Corn Bread Omelette", price: 60}, {name: "Chicken Bread Omelette", price: 70}, {name: "Chicken Cheese B.O", price: 80}
+            ]},
+            { category: "Burgers & Extra", id: "burgers", items: [
+                {name: "Veg Burger", price: 70}, {name: "Chicken Burger", price: 80}, {name: "Paneer Burger", price: 90}, {name: "Fried Chicken Burger", price: 110}, {name: "Double Patty Chicken", price: 140}, {name: "Extra Cheese", price: 15}
+            ]},
+            { category: "Finger Foods", id: "finger", items: [
+                {name: "French Fries (160g)", price: 60}, {name: "Peri Peri Fries (160g)", price: 70}, {name: "Cheese Corn Nuggets (5pcs)", price: 70}, {name: "Veg Cheese Ball (5pcs)", price: 80}, {name: "Veg Momos (5pcs)", price: 60}, {name: "Veg Samosa (5pcs)", price: 60}, {name: "Chicken Momos (5pcs)", price: 70}, {name: "Chicken Nuggets (5pcs)", price: 70}, {name: "Chicken Cheese Ball (5pcs)", price: 70}, {name: "Chicken Samosa (5pcs)", price: 70}, {name: "Chicken Popcorn (150g)", price: 110}, {name: "Crispy Wings (4pcs)", price: 110}, {name: "Chicken Strips (4pcs)", price: 110}
+            ]},
+            { category: "Chats & Sandwich", id: "chats", items: [
+                {name: "Pani Puri (8 pcs)", price: 30}, {name: "Mayo Puri (6 pcs)", price: 55}, {name: "Cheese Puri (5 pcs)", price: 55}, {name: "Dahi Puri (5 pcs)", price: 55}, {name: "Khakara Sandwich", price: 80}, {name: "Murukku Sandwich", price: 80}, {name: "Corncanapy Sandwich", price: 80}, {name: "Plain Sandwich", price: 40}, {name: "Plain Toast Sandwich", price: 45}, {name: "Veg Cheese Toast", price: 60}, {name: "Veg Cheese Corn Toast", price: 70}, {name: "Chicken Sandwich", price: 90}, {name: "Paneer Cheese Sandwich", price: 80}
+            ]},
+            { category: "Veg Combos", id: "vcombos", items: [
+                {name: "VEG COMBO 1", price: 130, desc: "Veg Burger + French Fries + Coke"}, {name: "VEG COMBO 2", price: 140, desc: "Veg Burger + Peri Peri Fries + Coke"}, {name: "VEG COMBO 3", price: 220, desc: "Paneer Burger + Nuggets + Momos + Coke"}, {name: "VEG COMBO 4", price: 260, desc: "Fries + Cheese Ball + Samosa + Momos + Coke"}, {name: "VEG COMBO 5", price: 290, desc: "Paneer Burger + Samosa + Cheese Ball + Nuggets + Coke"}
+            ]},
+            { category: "Non-Veg Combos", id: "nvcombos", items: [
+                {name: "NV COMBO 1", price: 140, desc: "Chicken Burger + Peri Peri Fries + Coke"}, {name: "NV COMBO 2", price: 220, desc: "Chicken Burger + Momos + Samosa + Coke"}, {name: "NV COMBO 3", price: 250, desc: "Fried Bgr + Cheese Ball + Nuggets + Coke"}, {name: "NV COMBO 4", price: 300, desc: "Fries + Popcorn + Nuggets + Cheese Ball + Coke"}, {name: "NV COMBO 5", price: 350, desc: "Popcorn + Wings + Momos + Nuggets + Coke"}
+            ]}
+        ];
+
+        let cart = [];
+        function renderMenu() {
+            const grid = document.getElementById('menu-grid');
+            const nav = document.getElementById('cat-nav');
+            nav.innerHTML = menuData.map(s => `<a href="#${s.id}" class="cat-item">${s.category}</a>`).join('');
+            grid.innerHTML = menuData.map(section => `
+                <div id="${section.id}"><div class="menu-card"><div class="p-4 bg-white/5 border-b border-white/10"><h2 class="text-orange-500 font-black uppercase text-[10px] tracking-widest">${section.category}</h2></div>
+                ${section.items.map(item => `<div class="item-row"><div class="flex-1"><span class="text-[12px] font-bold block">${item.name}</span>${item.desc ? `<span class="text-[9px] text-gray-500 block mt-1">${item.desc}</span>` : ''}</div><div class="flex items-center gap-4"><span class="price-tag">₹${item.price}</span><button onclick="addToCart('${item.name}', ${item.price})" class="add-btn">ADD</button></div></div>`).join('')}</div></div>`).join('');
+        }
+        function addToCart(name, price) { const item = cart.find(i => i.name === name); if (item) item.qty++; else cart.push({ name, price, qty: 1 }); updateUI(); showToast(); }
+        function changeQty(name, delta) { const item = cart.find(i => i.name === name); if (item) { item.qty += delta; if (item.qty <= 0) cart = cart.filter(i => i.name !== name); } updateUI(); }
+        function updateUI() {
+            const list = document.getElementById('cart-items-list'); const totalEl = document.getElementById('cart-summary-total'); const badgeEl = document.getElementById('cart-count-badge'); const panel = document.getElementById('cart-panel');
+            let total = 0, count = 0;
+            list.innerHTML = cart.length ? '' : '<p class="text-gray-600 text-center py-10 text-xs font-bold uppercase">No items selected</p>';
+            cart.forEach(item => { total += item.price * item.qty; count += item.qty; list.innerHTML += `<div class="cart-item-row"><div class="flex-1"><p class="text-[11px] font-bold text-white">${item.name}</p><p class="text-orange-500 text-[10px] font-bold">₹${item.price * item.qty}</p></div><div class="flex items-center gap-2"><button onclick="changeQty('${item.name}', -1)" class="qty-btn">-</button><span class="text-xs font-bold w-4 text-center">${item.qty}</span><button onclick="changeQty('${item.name}', 1)" class="qty-btn">+</button></div></div>`; });
+            totalEl.innerText = `₹${total}`; badgeEl.innerText = count;
+            if (cart.length > 0) panel.classList.add('peek'); else panel.classList.remove('peek', 'open');
+        }
+        function openCart() { document.getElementById('cart-panel').classList.add('open'); }
+        function closeCart() { document.getElementById('cart-panel').classList.remove('open'); }
+        function showToast() { const t = document.getElementById('toast'); t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 1000); }
+        // Locate the sendToWhatsApp function in your code and replace it with this:
+
+function sendToWhatsApp() {
+    const name = document.getElementById('custName').value.trim();
+    const phone = document.getElementById('custPhone').value.trim();
+
+    if (!name || !phone) {
+        alert("Please enter your Name & Mobile Number first!");
+        return;
+    }
+
+    if (cart.length === 0) {
+        alert("Your cart is empty!");
+        return;
+    }
+
+    // 1. Prepare the WhatsApp Message
+    let msg = `🔥 *ORU TEA SOLLU ORDER*%0A👤 *Cust:* ${name}%0A📞 *Mob:* ${phone}%0A%0A`;
+    cart.forEach((i, idx) => { 
+        msg += `${idx+1}. ${i.name} (${i.qty}) - ₹${i.price * i.qty}%0A`; 
+    });
+    msg += `%0A💰 *TOTAL: ${document.getElementById('cart-summary-total').innerText}*`;
+
+    // 2. Open WhatsApp
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
+
+    // 3. CLEAR CART ONLY (Keep Name and Phone)
+    cart = []; 
+    
+    // 4. Update the Screen
+    updateUI(); 
+    closeCart(); // Close the panel after sending
+}
+        renderMenu();
+    </script>
+</body>
+</html>
